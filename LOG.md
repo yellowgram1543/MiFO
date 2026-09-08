@@ -4,8 +4,8 @@ Append-only lab journal. One entry per work session.
 Format: **What we did → Why → What we found → Decisions → Next.**
 Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis reference for the fitting phase, not a locked design).
 
-**Current step:** 1 — Data acquisition (labeled datasets)
-**Next action:** Download + inventory LIAR / FakeNewsNet / NELA-GT into `data/` with provenance
+**Current step:** 3 — Text acquisition (full crawl in progress)
+**Next action:** F4 crawl completion → Wayback recovery stage → text corpus lock
 
 ---
 
@@ -99,3 +99,74 @@ Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis re
 
 **Next**
 - User merges PR #1 (or asks me to). Then Step 2 (EDA) on go. LIAR zip still pending from user.
+
+## 2026-09-08 — Step 2: FakeNewsNet EDA — propagation
+
+**What we did** (Colab, notebook.ipynb)
+- Combined 4 CSVs (23,196 articles). Tweet-count availability + distributions per group×label; Mann-Whitney U + rank-biserial per source group.
+
+**What we found**
+- Zero-tweet share: politifact real 34.5% vs fake 9.3%; gossipcop real 6.3% vs fake 3.5%.
+- politifact real is bimodal: median 8 but mean 670 (p99 = 12,505). Fakes spread more consistently but with a lower ceiling.
+- **Propagation volume reverses by source group with near-equal force:** politifact rank-biserial +0.268 (p=7.7e-14, fake spreads more); gossipcop −0.269 (p=2.3e-193, real spreads more). Pooled, they cancel → tweet volume is a source-context feature, NOT a fakeness feature.
+- Caveats: counts only (no timestamps yet); dataset is fact-checked articles (selection bias).
+
+**Decisions**
+- D10: Propagation features must be event-relative (compare to same-event baseline, never global constants). Validates the anchor-relative design in archive/MiFO_Formulas.md.
+
+## 2026-09-08 — Step 2.5: Domain structure — the honesty baseline
+
+**What we did**
+- Domain parsing, fake/real overlap, domain-prior leave-one-out baseline, domain buckets (clean_fake ≥90% / MIXED / clean_real ≤10%), crawlability audit.
+
+**What we found**
+- Domain-prior LOO accuracy: ALL 83.4% (n=22,866) vs 75.2% majority (+8.2 pts only); politifact 67.9%, gossipcop 84.1%.
+- Buckets: MIXED = 373 domains / 14,098 articles (61.6%) @ 77.9% LOO; clean_fake 546/1,557 @ 69.7% (cold-start artifact: singleton domains tie-break to global majority); clean_real 1,510/7,211 @ 97.2%.
+- Minority-label articles (domain prior's irreducible errors): 3,184; actual LOO errors ≈ 3,807 (gap = tie-breaks on singleton domains). Math closes.
+- **Structure: gossipcop is a within-domain problem** (75.9% of articles from domains publishing both labels — same outlet, story-level variation) **while politifact is between-domain** (long-tail fake sites vs mainstream real). Two different ML problems in one dataset.
+- Crawlability: 330 no-URL, 204 archive.org-only, 1,208 duplicate URLs, 1,472 duplicate titles, 2,429 unique domains / 75 TLDs.
+
+**Decisions**
+- D11: All evaluation reported per source group, never pooled. Evaluation target: beat 77.9% on MIXED-domain articles using per-story content. The 84.1% pooled number is vanity and banned from claims.
+
+## 2026-09-08 — Step 3: Text acquisition — LIAR + crawl pilot + Wayback
+
+**What we did**
+- LIAR acquired in Colab (UCSB zip; SHA256 611c1addad919743…, 1.0MB): train 10,269 / valid 1,284 / test 1,283 × 14 cols. Label counts (train): half-true 2,123, false 1,998, mostly-true 1,966, true 1,683, barely-true 1,657, pants-fire 842. The checksummed FILE is canonical (paper's published per-class numbers differ slightly — file wins).
+- Agent error logged: initial parse spec used 15 column names for a 14-col file → one-position shift; fixed same session. Second agent error: report cell compared mixed-dtype status to int → "0.0% live" false reading; fixed (real pilot live rate 52.0%).
+- Stratified pilot crawl: 1,430 URLs (all politifact + 125/cell gossipcop sample), polite crawler (2s/domain), trafilatura extraction.
+- Wayback availability checks on failed URLs.
+
+**What we found**
+- Pilot: 52.0% live, 42.2% extracted ≥200 chars (604 texts), median 2,478 chars. Gossipcop extracts ~60%; politifact ~27% (link rot). Of live pages, 81% extract → bottleneck is dead links, not extraction. 403/402 blocks ≈ 18% (partly Colab datacenter IP).
+- Wayback: A4's "0/150 coverage" was INVALID (agent error: 150 unspaced calls → throttled, all failures swallowed by except-pass; plus unencoded URL concatenation). Proper spaced diagnostics: 12/18 and 18/20 URLs have snapshots → real coverage of failed URLs ≈ 65–90%. Fake-news domains ARE archived.
+- Full manifest: 21,461 unique crawlable URLs; 654 already have pilot text; TO CRAWL 20,807 (politifact 248f/286r, gossipcop 4,446f/15,827r).
+
+**Decisions**
+- D12: Hybrid text strategy — direct crawl for the full manifest + Wayback recovery stage (era-filtered snapshots) for failures. Rationale: gossipcop viable direct (~60%), politifact needs Wayback (~65–90% coverage of the dead).
+
+## 2026-09-08 — Step 3.5: LIAR signal tests — the leakage lesson
+
+**What we did**
+- C3: TF-IDF(1-2gram)+LogReg 6-class baseline on claim text. C4: content vs context (speaker credit history) vs combined, with raw and leave-one-out (LOO) history variants.
+
+**What we found**
+- C3: acc 0.252 / macro-F1 0.219 vs 0.207 majority. Within published text-only band (~0.23–0.28). pants-fire recall 0.03 — text alone almost never catches the worst class.
+- C4: **raw history-only scored 0.449 — that was leakage** (tallies include the current statement). LOO-corrected: 0.233. Combined text+history (LOO): **0.272 acc / 0.263 macro-F1** — best honest model; +20% relative macro-F1 over text-only. Multi-signal combination validated, modestly.
+- The +4.4 macro-F1 points' source (per-class crosstab) — not yet run. Open item.
+
+**Decisions**
+- D13 (principle): Any feature computed from an aggregate that includes the current item must be leave-one-out corrected. Applies to speaker history, domain priors, and future anchor-consensus scores. The 0.449 number is banned from all claims.
+
+## 2026-09-08 — Step 3.6: F3 stall incident (in progress)
+
+**What happened**
+- F3 (full crawl, Drive-direct writes): zero checkpoints in 36.5 min (<500 completions vs expected ~5/s). Pilot wrote 604 Drive texts in 5.3 min, so per-item Drive FUSE writes are the suspected bottleneck — this session's mount is degraded; each .txt write blocks its worker for seconds and writes serialize.
+
+**What we did / are doing**
+- F4 written: VM-local text writes + 60s heartbeat + checkpoint every 200 (local) + Drive sync (results.csv + texts zip) every 2,000. Rescues F3's partial texts automatically. Heartbeat confirms or refutes the Drive diagnosis at minute 1.
+
+**Decisions**
+- D14: During crawls, never put per-item I/O on the Drive mount — write VM-local, sync bulk snapshots to Drive. (Generalizes: per-item file writes go to fast local disk everywhere; network mounts get batch writes only.)
+
+**Correction (post F4):** F4 heartbeat (0 completions with VM-local writes) + zero rescued F3 texts disproved the Drive-write theory. F3 completed zero items — actual cause is a network-layer hang (DNS/getaddrinfo is not covered by requests timeout) or dead VM egress. Triage + curl-based fetch (F5) issued. Agent diagnosis error logged.
