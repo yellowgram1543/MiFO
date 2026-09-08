@@ -1,0 +1,5 @@
+# NOTE: the sandbox Python environment is ephemeral — packages do not persist
+# between sessions. Reinstall at the start of each session:
+#   pip install --break-system-packages -r requirements.txt
+pandas>=2.0
+numpy
