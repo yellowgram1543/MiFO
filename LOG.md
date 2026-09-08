@@ -63,3 +63,21 @@ Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis re
 
 **Next**
 - Step 2 (EDA on FakeNewsNet): label balance, tweet-count distributions, domain overlap, crawlability audit. LIAR still pending from user.
+
+## 2026-09-08 — Step 1.6: environment restore caught; data rehydration added
+
+**What happened**
+- Sandbox was rebuilt between sessions. Two effects, caught by post-session verification: (1) untracked raw data (`data/raw/`, git-ignored) was lost; (2) the previous session's commit boundary was squashed — `d0436ab` now contains both step 1 and step 1.5 (content verified complete against expectations, nothing missing).
+
+**What we did**
+- Added `scripts/fetch_data.py`: one-command rehydration of all GitHub-fetchable raw data, with SHA256 verification against the checksums recorded in `data/README.md` at acquisition time.
+- Re-downloaded all 4 FakeNewsNet CSVs — all 4 checksums match the originals (data is byte-identical).
+
+**Why**
+- Ground rule in action: log the break, don't hide it. And the checksum mandate proved its worth within one day of existing: we can prove the restored data is identical rather than trusting it.
+
+**Decisions**
+- D8: Raw data in this sandbox is EPHEMERAL across sessions. Every dataset must be rehydratable via a committed script; checksums are recorded at acquisition, verified at every rehydration.
+
+**Next**
+- Step 2 (EDA) unchanged. LIAR zip still pending from user (UCSB unreachable from sandbox).
