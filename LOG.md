@@ -81,3 +81,21 @@ Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis re
 
 **Next**
 - Step 2 (EDA) unchanged. LIAR zip still pending from user (UCSB unreachable from sandbox).
+
+## 2026-09-08 — Step 1.7: publishing gap caught; rules amended to v1.1
+
+**What happened**
+- User checked GitHub and saw the repo unchanged. Cause: all work since the pivot existed only as local commits on the session branch — nothing had been pushed. `master` on GitHub was still at the initial commit `e74cf57`.
+
+**What we did**
+- Pushed `arena/01a080cf-mifo` to origin and opened PR #1 (arena branch → master).
+- Amended GROUND_RULES.md to v1.1: **push** is now an explicit step in the session ritual (between commit and explain), and rehydration now includes `scripts/fetch_data.py`.
+
+**Why**
+- Rule break logged, rule fixed. "Commit" without "push" means the work is invisible to everyone but the sandbox — for a repo whose whole point is documented progress, that's a broken state.
+
+**Decisions**
+- D9: Session ritual is now log → commit → push → explain (GROUND_RULES v1.1). PRs into `master` are merged by the human (decisions belong to the human).
+
+**Next**
+- User merges PR #1 (or asks me to). Then Step 2 (EDA) on go. LIAR zip still pending from user.

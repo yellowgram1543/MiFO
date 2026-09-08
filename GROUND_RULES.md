@@ -1,17 +1,18 @@
 # MiFO Ground Rules
 
-Working agreement between the human and the agents. v1 — 2026-09-08.
+Working agreement between the human and the agents. v1.1 — 2026-09-08.
 These are enforceable habits, not aspirations. If a rule gets broken, we log the break and fix it — we don't delete the evidence.
 
 ## 1. Session ritual (every work session, no exceptions)
 
-1. **Rehydrate:** if the sandbox env was reset, `pip install --break-system-packages -r requirements.txt`.
+1. **Rehydrate:** if the sandbox env was reset, `pip install --break-system-packages -r requirements.txt` and `python3 scripts/fetch_data.py`.
 2. **Work.**
 3. **Log:** append a `LOG.md` entry — *What we did → Why → What we found → Decisions → Next*.
 4. **Commit:** all work of the session (code + log) in one commit, message format `step N[.M]: <what happened>`.
-5. **Explain:** plain-language explanation to the human in chat; human asks questions until it clicks.
+5. **Push:** `git push origin arena/01a080cf-mifo` — unpublished work doesn't exist (v1.1: added after the "why is everything still the same" incident).
+6. **Explain:** plain-language explanation to the human in chat; human asks questions until it clicks.
 
-A session that ends without 3–5 is not a closed session.
+A session that ends without 3–6 is not a closed session.
 
 ## 2. Reproducibility
 
