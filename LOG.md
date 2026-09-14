@@ -4,8 +4,8 @@ Append-only lab journal. One entry per work session.
 Format: **What we did → Why → What we found → Decisions → Next.**
 Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis reference for the fitting phase, not a locked design).
 
-**Current step:** 3 — Text acquisition (full crawl in progress)
-**Next action:** F4 crawl completion → Wayback recovery stage → text corpus lock
+**Current step:** 4 — Text Embeddings & Event Clustering
+**Next action:** Generate dense embeddings for the 12,930 locked articles → event clustering & anchor identification.
 
 ---
 
@@ -170,3 +170,41 @@ Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis re
 - D14: During crawls, never put per-item I/O on the Drive mount — write VM-local, sync bulk snapshots to Drive. (Generalizes: per-item file writes go to fast local disk everywhere; network mounts get batch writes only.)
 
 **Correction (post F4):** F4 heartbeat (0 completions with VM-local writes) + zero rescued F3 texts disproved the Drive-write theory. F3 completed zero items — actual cause is a network-layer hang (DNS/getaddrinfo is not covered by requests timeout) or dead VM egress. Triage + curl-based fetch (F5) issued. Agent diagnosis error logged.
+
+## 2026-09-08 — Step 3.7: Direct crawl complete (F5.1)
+
+**What we did**
+- F3 stalled (zero completions/36.5m) → F4 isolated cause (not Drive writes) → triage showed healthy egress → F5 curl-based fetch (hard wall-clock timeouts) + user refactor (F5.1, two runs across runtimes). Root cause class: hangs outside requests' timeout coverage (DNS layer); curl --max-time eliminates the class.
+
+**What we found**
+- Direct crawl: 20,804 attempted, 12,056 with text (58.0%). Gossipcop: fake 56.7% / real 60.2%. PolitiFact residue: 0.8% / 2.4% — SELECTION BIAS by design (manifest excluded 654 pilot successes incl. ~214 politifact texts); politifact direct total ≈ 223/1,056 crawlable (21%).
+- Corpus now: 12,716 texts (12,056 + 660 pilot), canonical artifact = texts_snapshot.zip on Drive.
+- F5.1 audit notes (user modifications, logged per overwatch agreement): final_url records original URL not redirect target; heartbeat texts counter starts at 0 on fresh runtime (display only). Accounting verified consistent across the two runs.
+
+**Decisions**
+- D15: Wayback recovery stage (W1 CDX resolve → W2 snapshot fetch → W3 corpus lock) for ~9,722 text-less URLs, politifact prioritized. Era filter 2015–2019, status-200 snapshots, id_ raw-content mode, global politeness gap to archive.org.
+- D16 (hygiene): crawl text files and zips never enter git (Drive only); manifest.csv + results.csv to be committed at corpus lock (small, high provenance value).
+
+**Next**
+- W1→W2→W3, then corpus lock report and the first embedding/clustering experiment.
+
+## 2026-09-14 — Step 3.8: Corpus lock complete (12,930 full-text articles)
+
+**What we did** (Colab, crawler.ipynb)
+- Executed W1 (Wayback CDX snapshot resolution across 8,962 missing targets) → W2 (raw snapshot text extraction) → W3 (corpus lock and provenance indexing).
+
+**What we found**
+- **12,930 total full-text articles acquired** (55.7% of the entire FakeNewsNet universe):
+  - **GossipCop Fake:** 2,766 articles
+  - **GossipCop Real:** 9,836 articles
+  - **PolitiFact Fake:** 159 articles
+  - **PolitiFact Real:** 169 articles
+- Ingestion sources: Direct Full Crawl (12,063), Direct Pilot (634), Wayback Recovery (233).
+- Master corpus index generated and locked at `data/processed/corpus_index.csv`.
+- Text acquisition phase officially **CLOSED**.
+
+**Decisions**
+- D17: Corpus is locked at 12,930 articles. All downstream feature extraction, embedding generation, event clustering, and anchor selection will evaluate against this fixed dataset.
+
+**Next**
+- Step 4: Generate dense embeddings for the 12,930 articles and perform same-event topic clustering.
