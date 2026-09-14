@@ -4,8 +4,8 @@ Append-only lab journal. One entry per work session.
 Format: **What we did → Why → What we found → Decisions → Next.**
 Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis reference for the fitting phase, not a locked design).
 
-**Current step:** 4 — Text Embeddings & Event Clustering
-**Next action:** Generate dense embeddings for the 12,930 locked articles → event clustering & anchor identification.
+**Current step:** 4.2 — Anchor Consensus Drift Experiment (E5)
+**Next action:** Run E5 (naive equal-weight real anchor + LOO drift AUC evaluation).
 
 ---
 
@@ -220,9 +220,36 @@ Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis re
 - Data quality: junk category/archive pages contaminate the corpus (Event #18: 13 fake / 3 real are listing pages, not articles) — fake-label side is overrepresented. Corpus v1.1 filter task.
 - LIAR text-only matrix: confusion is ORDINAL (errors flow to adjacent classes); model over-predicts half-true/false; pants-fire invisible (recall 0.03). Argues for ordinal-aware modeling in the calibration phase. NOTE: first crosstab run used the wrong predictions file (text-only, not combined) — rerun issued.
 
+## 2026-09-14 — Step 4.0: E3 threshold sweep; leaky-cell incident caught
+
+**What we did**
+- E3 sweep sim 0.55–0.85 (two implementations, consistent). Committed E1 (embeddings + Drive save), E2, text-only crosstab (e3670b1, b5a08df).
+
+**What we found**
+- Sweep: blob dies progressively (max comp 9,071→43); mixed events peak at sim≥0.70 (162, max comp 1,000 = 7.7%); 0.80 over-splits (94). Operating point: 0.70 + surgical re-split of >500-article components at 0.80.
+- INCIDENT: an uncommitted Colab cell produced a "combined" matrix at 0.438/0.444, pants-fire recall 0.66, 1,267 rows — the RAW leaky variant (D13 trap reintroduced) on a 16-row-dropped test set. REJECTED; honest combined remains 0.272/0.263. Not committed; repo verified clean.
+
 **Decisions**
-- D19: Event clustering v1 parameters rejected (blob). E3 threshold sweep → v2 with max-component constraint (<5% corpus); fallback = embed title+lead, not title alone.
-- D20: Junk-page filter required before corpus v1.1 (pattern-based title filter + review).
+- D21: Events v2 = junk filter (v0) + components @ sim 0.70 + re-split >500 @ 0.80.
+- D22: Model/analysis cells enter notebooks only via spec'd code (Arena spec or explicit prompt) and get overwatch-checked before their numbers are quoted or logged. Ad-hoc regenerations of model cells are the worked example of why.
 
 **Next**
-- E3 sweep → pick operating point → E4 rebuild events → true mixed-event count (the anchor-experiment universe size).
+- E4 → corpus_events_v2 + anchor-universe counts → first anchor experiment design.
+
+## 2026-09-14 — Step 4.1: Events v2 locked — the anchor universe exists
+
+**What we did**
+- E4: junk filter v0 (297 flagged: 'Latest news…'/'Page N' + <15-char titles; skews REAL 219/78 — bare celebrity-name bio/tag pages) → components @0.70 → single 943-megacomp re-split @0.80 (→637 sub-events) → corpus_events_v2.csv (committed-adjacent artifact on Drive).
+
+**What we found**
+- v2: 9,470 events; 416 multi (≥3) covering 2,954; max comp 383 (3% — acceptable, flagged); 170 mixed events.
+- **Anchor universe (real≥3 & fake≥1): 94 events / 1,605 articles**; real≥2: 136/1,747; real≥1: 170/1,899.
+- Junk filter v0 provisional: flagged set skews real (bare-name pages) — manual sample review owed before corpus v1.1.
+
+**Decisions**
+- D23: Events v2 canonical. Anchor experiments run on real≥3 & fake≥1 events, size-capped ≤50 (excludes the 383-comp pending review).
+- D24: Cluster on titles, measure drift on text (title+lead) — avoids clustering circularity in the S measurement.
+
+**Next**
+- E5: naive equal-weight real anchor + LOO drift; pooled & per-event AUC. Any of the four outcome bands is informative.
+
