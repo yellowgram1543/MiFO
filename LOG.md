@@ -208,3 +208,21 @@ Old planning docs live in `archive/` (the v2.1 formula spec is our hypothesis re
 
 **Next**
 - Step 4: Generate dense embeddings for the 12,930 articles and perform same-event topic clustering.
+
+## 2026-09-08 — Step 3.9: Event clustering v1 — percolation found; thesis exemplar found
+
+**What we did**
+- E1: MiniLM title embeddings (12,930 × 384). E2: k-NN connected components (k=5, cos-sim ≥ 0.55). LIAR text-only confusion matrix.
+
+**What we found**
+- 3,006 components, but Event #0 = 8,980 articles (76% of corpus) — PERCOLATION: gossip-title boilerplate chains weak links into one blob. The "43 mixed events" stat is inflated by the blob and is NOT the universe estimate. 166 genuine multi-events cover only ~855 articles.
+- Method validated: real events recovered cleanly (Nassar 24, Riverdale 20, SVU 16, Aaron Carter 15). Event #204 (Tim McGraw/Faith Hill, 10 real + 3 fake: fake divorce story vs real album announcement) is the canonical MiFO exemplar — same-topic contradictory narratives in one cluster.
+- Data quality: junk category/archive pages contaminate the corpus (Event #18: 13 fake / 3 real are listing pages, not articles) — fake-label side is overrepresented. Corpus v1.1 filter task.
+- LIAR text-only matrix: confusion is ORDINAL (errors flow to adjacent classes); model over-predicts half-true/false; pants-fire invisible (recall 0.03). Argues for ordinal-aware modeling in the calibration phase. NOTE: first crosstab run used the wrong predictions file (text-only, not combined) — rerun issued.
+
+**Decisions**
+- D19: Event clustering v1 parameters rejected (blob). E3 threshold sweep → v2 with max-component constraint (<5% corpus); fallback = embed title+lead, not title alone.
+- D20: Junk-page filter required before corpus v1.1 (pattern-based title filter + review).
+
+**Next**
+- E3 sweep → pick operating point → E4 rebuild events → true mixed-event count (the anchor-experiment universe size).
